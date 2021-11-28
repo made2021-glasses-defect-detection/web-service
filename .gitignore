@@ -1,5 +1,12 @@
+.DS_Store
+.venv/
 .ipynb_checkpoints
 .pytest_cache
 __pycache__
+*.pid
+*.png
+*.jpg
 *.pch
+
 input_classifier/images
+

@@ -8,15 +8,12 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from PIL import Image
 
-DATA_DIR = "images"
-MODEL_PATH = "efficientnet-b0.pch"
 THRESHOLD = 0.5
 
 class ImageData(Dataset):
     def __init__(self, df, transform):
         super().__init__()
         self.df = df.reset_index()
-        self.data_dir = DATA_DIR
         self.transform = transform
 
     def __len__(self):
@@ -32,15 +29,15 @@ class ImageData(Dataset):
         return image, label
 
 class Evaluator:
-	def __init__(self):
-		self.model = self.load_model()
+	def __init__(self, model_path):
+		self.model = self.load_model(model_path)
 		self.transformations = self.load_transformations()
 
-	def load_model(self):
+	def load_model(self, model_path):
 		model = EfficientNet.from_name('efficientnet-b0')
 		num_ftrs = model._fc.in_features
 		model._fc = nn.Linear(num_ftrs, 1)
-		model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device('cpu')))
+		model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 		model.eval()
 		return model
 
