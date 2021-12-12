@@ -17,6 +17,16 @@ pip install watchdog -U
 ./dev-run.sh
 ```
 
+## Login to GHCR
+
+Create personal access token here https://github.com/settings/tokens (see more https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+)
+
+Use this token as a password with:
+```sh
+docker login ghcr.io -u <your-github-username>
+```
+
 ## Build Image
 
 ```sh
@@ -45,7 +55,7 @@ docker push ghcr.io/made2021-glasses-defect-detection/input-classifier
 docker run -it -v /E//Soft/MADE/semester_3/diploma/model/input_classifier:/app/images ghcr.io/made2021-glasses-defect-detection/input-classifier bash
 ```
 
-# Docker compose 
+# Docker compose
 
 ## Local build and push to registry
 

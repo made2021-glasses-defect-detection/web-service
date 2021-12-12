@@ -6,7 +6,7 @@ import sys
 import time
 
 from uuid import uuid4
- 
+
 class GracefulKiller:
     kill_now = False
     def __init__(self):
@@ -18,12 +18,13 @@ class GracefulKiller:
 
 class RedisStorage:
     INPUT_VALIDATION = "INPUT_VALIDATION"
+    SEGMENTATION = "SEGMENTATION"
 
     def __init__(self):
         host = os.environ.get("REDIS_HOST", 'localhost')
 
         self.redis_conn = redis.Redis(
-            charset="utf-8", 
+            charset="utf-8",
             decode_responses=True,
             host=host,
         )
@@ -34,7 +35,7 @@ class RedisStorage:
 
     def subscribe(self, queue_name, handler):
         print(f"Subscribed to `{queue_name}`")
-        
+
         killer = GracefulKiller()
         while not killer.kill_now:
             packed = self.redis_conn.blpop([f"queue:{queue_name}"], 1)
@@ -51,9 +52,9 @@ class RedisStorage:
     def save(self, payload):
         uid = str(uuid4())
         payload["uid"] = uid
-        return self.update(uid, payload)        
+        return self.update(uid, payload)
 
-    def load(self, uid):        
+    def load(self, uid):
         payload = self.redis_conn.get(uid)
 
         if payload:

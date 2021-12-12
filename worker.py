@@ -1,42 +1,67 @@
 from argparse import ArgumentParser
-from input_classifier import classification_efficientnet
 from redis_storage import RedisStorage
+from serialize import json_to_torch, torch_to_json
 
 INPUT_VALIDATION_HANDLER = "validator"
-DEFECT_DETECTION_HANDLER = "detector"
+SEGMENTATION_HANDLER = "segmentation"
+CLASSIFIER_HANDLER = "classifier"
 
 HANDLERS = [
-	INPUT_VALIDATION_HANDLER,
-	DEFECT_DETECTION_HANDLER,
+    INPUT_VALIDATION_HANDLER,
+    SEGMENTATION_HANDLER,
+    CLASSIFIER_HANDLER,
 ]
 
 INPUT_MODEL_PATH = "input_classifier/efficientnet-b0.pch"
+SEGMENTATION_MODEL_PATH = "segmentation/unet_resnet34_whole.pth"
+UPLOAD_DIR = "./uploads"
 
 # Storage format:
 # {
-# 	"uid": "uuidv4",
-# 	"path": "file_path",
+#   "uid": "uuidv4",
+#   "path": "file_path",
 #   "input_validation": True|False, True - валидация успешно пройдена
+#   "segmented_image": "file_path",
+#   "segmentation_result": "JSON with Torch Tensor",
 # }
 
 storage = RedisStorage()
 
 def handler_callback(arguments):
-	if arguments.handler == INPUT_VALIDATION_HANDLER:
-		input_validator = classification_efficientnet.Evaluator(INPUT_MODEL_PATH)
-		
-		def input_handler(payload):
-			uid = payload["uid"]
-			path = payload["path"]
+    if arguments.handler == INPUT_VALIDATION_HANDLER:
+        from input_classifier import classification_efficientnet
 
-			result = input_validator.predict(path)
-			payload["input_validation"] = result
-			storage.update(uid, payload)
-			print(f"Update input_validation for {path} = {result}")
+        input_validator = classification_efficientnet.Evaluator(INPUT_MODEL_PATH)
 
-		storage.subscribe(RedisStorage.INPUT_VALIDATION, input_handler)
-	elif arguments.handler == DEFECT_DETECTION_HANDLER:
-		print("TBD...")
+        def input_handler(payload):
+            uid = payload["uid"]
+            path = payload["path"]
+
+            result = input_validator.predict(path)
+            payload["input_validation"] = result
+            storage.update(uid, payload)
+            storage.publish(RedisStorage.SEGMENTATION, payload)
+            print(f"Update input_validation for {path} = {result}")
+
+        storage.subscribe(RedisStorage.INPUT_VALIDATION, input_handler)
+    elif arguments.handler == SEGMENTATION_HANDLER:
+        from segmentation import segmentor
+
+        segmentation = segmentor.Evaluator(SEGMENTATION_MODEL_PATH, UPLOAD_DIR)
+
+        def segmentation_handler(payload):
+            uid = payload["uid"]
+            path = payload["path"]
+
+            predicted, image_pred_path = segmentation.predict(path)
+            payload["segmentation_result"] = torch_to_json(predicted)
+            payload["segmented_image"] = image_pred_path
+            storage.update(uid, payload)
+            print(f"Image {uid} segmeted {image_pred_path}")
+
+        storage.subscribe(RedisStorage.SEGMENTATION, segmentation_handler)
+    elif arguments.handler == CLASSIFIER_HANDLER:
+        print("TBD...")
 
 def setup_parser(parser):
     """Setup CLI arg parsers"""
@@ -49,7 +74,7 @@ def setup_parser(parser):
         required=True,
     )
 
-if __name__ == "__main__":	
+if __name__ == "__main__":
     """Entry point"""
     parser = ArgumentParser(
         description="Worker for process queues",

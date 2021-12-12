@@ -20,6 +20,10 @@
       #footer {
         padding-top: 25px;
       }
+
+      .image {
+        max-width: 800px;
+      }
     </style>
   </head>
   <body>
@@ -27,7 +31,7 @@
 
     <div class="container">
       <div class="row">
-        <h3>Поиск дефектов на защитных очках</h3>
+        <h3><a href="/">Поиск дефектов на защитных очках</a></h3>
 
         {% if error %}
           <div class="alert alert-danger" role="alert">
@@ -51,16 +55,19 @@
       {% if uid %}
       <div class="row">
         <div class="col-sm">
-          <div id="input_validation">Валидация...</div>
+          <div id="progress">Валидация...</div>
           <div id="result"></div>
           <div id="spinner">
-            <img src="static/spinner.gif" width="100" />
+            <img src="/static/spinner.gif" width="50" />
           </div>
+          <div id="segmentation"><img class="image"/></div>
         </div>
 
         <script type="text/javascript">
           $(document).ready(function () {
             var timer_id = null;
+            var validated = false;
+            var segmented = false;
 
             function stop() {
               $("#spinner").hide();
@@ -71,15 +78,28 @@
               var uid = "{{ uid }}";
 
               $.get("/result/" + uid, function(data) {
-                if (data.hasOwnProperty("input_validation")) {
-                  if (data["input_validation"] === true) {
-                    $("#input_validation").text("Поиск дефектов...")
-                  } else {
-                    $("#input_validation").text("На изображении нет защитных очков");
-                    stop();
+                if (!validated) {
+                  if (data.hasOwnProperty("input_validation")) {
+                    if (data["input_validation"] === true) {
+                      $("#progress").text("Сегментация...")
+                      validated = true;
+                      return
+                    } else {
+                      $("#progress").text("На изображении нет защитных очков");
+                      stop();
+                    }
                   }
                 }
-              });            
+
+                if (!segmented) {
+                  if (data.hasOwnProperty("segmented_image")) {
+                    $("#progress").text("Поиск дефектов...")
+                    $("#segmentation img").attr("src", data["segmented_image"])
+                    segmented = true;
+                    return
+                  }
+                }
+              });
             }
 
             timer_id = setInterval(update_result, 2000);
@@ -90,7 +110,7 @@
       {% if image_url %}
       <div class="row">
         <div class="col-sm">
-          <img src="{{ image_url }}"/>
+          <img src="{{ image_url }}" class="image"/>
         </div>
       </div>
       {% endif %}
@@ -111,7 +131,7 @@
     <div class="container" id="footer">
       <div class="row">
         <div class="col-md-12 text-center">
-          <h5>Glass defect detection team @ MADE 2021</h5>
+          <h5>Goggles Defect Detection Team @ MADE 2021</h5>
         </div>
       </div>
     </div>

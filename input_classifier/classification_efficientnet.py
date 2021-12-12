@@ -18,14 +18,14 @@ class ImageData(Dataset):
 
     def __len__(self):
         return len(self.df)
-    
-    def __getitem__(self, index):       
+
+    def __getitem__(self, index):
         img_path = self.df.path[index]
-        label = self.df.glasses[index]       
-        
+        label = self.df.glasses[index]
+
         image = np.array(Image.open(img_path).convert('RGB'))
         image = self.transform(image)
-        
+
         return image, label
 
 class Evaluator:
@@ -43,16 +43,15 @@ class Evaluator:
 
 	def load_transformations(self):
 		return transforms.Compose([
-		    transforms.ToPILImage(), 
+		    transforms.ToPILImage(),
 		    transforms.Resize((224, 224)),
 		    transforms.ToTensor()]
 		)
 
 	def load_data(self, image_path):
-		df = pd.DataFrame({"path": [image_path], "glasses": 0})		
+		df = pd.DataFrame({"path": [image_path], "glasses": 0})
 		test_data = ImageData(df=df, transform=self.transformations)
 		test_loader = DataLoader(dataset=test_data, shuffle=False)
-		# import pdb; pdb.set_trace()
 		_i, (data, _target) = next(enumerate(test_loader))
 		return data
 

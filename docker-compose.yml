@@ -9,7 +9,7 @@ services:
     image: "ghcr.io/made2021-glasses-defect-detection/web-server"
     restart: always
     ports:
-      - "8000:8000"    
+      - "8000:8000"
     environment:
       - REDIS_HOST=redis
       - GUNICORN_CMD_ARGS="--bind=0.0.0.0"
@@ -20,6 +20,16 @@ services:
 
   input_validator:
     image: "ghcr.io/made2021-glasses-defect-detection/input-classifier"
+    restart: always
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    volumes:
+      - uploads:/app/uploads
+
+  segmentation:
+    image: "ghcr.io/made2021-glasses-defect-detection/segmentation"
     restart: always
     environment:
       - REDIS_HOST=redis
