@@ -3,9 +3,11 @@ version: "3"
 services:
   redis:
     image: "redis:6.2-alpine"
+    restart: always
 
   web:
     image: "ghcr.io/made2021-glasses-defect-detection/web-server"
+    restart: always
     ports:
       - "8000:8000"    
     environment:
@@ -18,6 +20,7 @@ services:
 
   input_validator:
     image: "ghcr.io/made2021-glasses-defect-detection/input-classifier"
+    restart: always
     environment:
       - REDIS_HOST=redis
     depends_on:
