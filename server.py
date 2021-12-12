@@ -37,11 +37,14 @@ def upload():
 def status(uid):
     payload = storage.load(uid)
 
-    return render_template(
-        'index.html',
-        image_url=url_for('download_file', name=payload["public_path"]),
-        uid=uid,
-    )
+    if payload:
+        return render_template(
+            'index.html',
+            image_url=url_for('download_file', name=payload["public_path"]),
+            uid=uid,
+        )
+    else:
+        return render_template('index.html', image_url=None)
 
 @app.route("/result/<uid>", methods=["GET"])
 def result(uid):
