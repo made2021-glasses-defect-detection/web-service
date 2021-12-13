@@ -4,7 +4,7 @@ from serialize import json_to_torch, torch_to_json
 
 INPUT_VALIDATION_HANDLER = "validator"
 SEGMENTATION_HANDLER = "segmentation"
-CLASSIFIER_HANDLER = "classifier"
+CLASSIFIER_HANDLER = "classification"
 
 HANDLERS = [
     INPUT_VALIDATION_HANDLER,
@@ -14,6 +14,7 @@ HANDLERS = [
 
 INPUT_MODEL_PATH = "input_classifier/efficientnet-b0.pch"
 SEGMENTATION_MODEL_PATH = "segmentation/unet_resnet34_whole.pth"
+CLASSIFICATION_MODEL_PATH = "classification/clf_whole.pth"
 UPLOAD_DIR = "./uploads"
 
 # Storage format:
@@ -57,11 +58,27 @@ def handler_callback(arguments):
             payload["segmentation_result"] = torch_to_json(predicted)
             payload["segmented_image"] = image_pred_path
             storage.update(uid, payload)
+            storage.publish(RedisStorage.CLASSIFICATION, payload)
             print(f"Image {uid} segmeted {image_pred_path}")
 
         storage.subscribe(RedisStorage.SEGMENTATION, segmentation_handler)
     elif arguments.handler == CLASSIFIER_HANDLER:
-        print("TBD...")
+        from classification import classifier
+
+        classifier_model = classifier.Evaluator(CLASSIFICATION_MODEL_PATH)
+
+        def classification_handler(payload):
+            uid = payload["uid"]
+            segmentation_result = json_to_torch(payload["segmentation_result"])
+
+            proba = classifier_model.predict(segmentation_result)
+            payload["proba"] = round(proba * 100, 2)
+            storage.update(uid, payload)
+            print(f"Image {uid} classified, probability of defect={proba}")
+
+        storage.subscribe(RedisStorage.CLASSIFICATION, classification_handler)
+    else:
+        raise f"Unknown worker type {arguments.handler}"
 
 def setup_parser(parser):
     """Setup CLI arg parsers"""

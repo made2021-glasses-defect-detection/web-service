@@ -19,6 +19,7 @@ class GracefulKiller:
 class RedisStorage:
     INPUT_VALIDATION = "INPUT_VALIDATION"
     SEGMENTATION = "SEGMENTATION"
+    CLASSIFICATION = "CLASSIFICATION"
 
     def __init__(self):
         host = os.environ.get("REDIS_HOST", 'localhost')

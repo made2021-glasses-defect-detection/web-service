@@ -38,5 +38,15 @@ services:
     volumes:
       - uploads:/app/uploads
 
+  classification:
+    image: "ghcr.io/made2021-glasses-defect-detection/classification"
+    restart: always
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    volumes:
+      - uploads:/app/uploads
+
 volumes:
   uploads:

@@ -68,6 +68,7 @@
             var timer_id = null;
             var validated = false;
             var segmented = false;
+            var classified = false;
 
             function stop() {
               $("#spinner").hide();
@@ -93,10 +94,18 @@
 
                 if (!segmented) {
                   if (data.hasOwnProperty("segmented_image")) {
-                    $("#progress").text("Классификация... (TBD)")
+                    $("#progress").text("Классификация...")
                     $("#segmentation img").attr("src", data["segmented_image"])
                     segmented = true;
                     return
+                  }
+                }
+
+                if (!classified) {
+                  if (data.hasOwnProperty("proba")) {
+                    $("#progress").text("Вероятность дефектов " + data["proba"] + "%");
+                    classified = true;
+                    stop();
                   }
                 }
               });

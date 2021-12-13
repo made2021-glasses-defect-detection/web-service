@@ -1,0 +1,6 @@
+Pillow==8.0.1
+opencv-python==4.5.1.48
+numpy==1.19.2
+torch==1.10.0
+redis==3.5.3
+segmentation-models-pytorch==0.2.0

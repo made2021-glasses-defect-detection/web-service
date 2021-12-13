@@ -10,4 +10,4 @@ __pycache__
 *.pth
 
 input_classifier/images
-
+segmentation/predicted.json
