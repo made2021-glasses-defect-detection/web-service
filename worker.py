@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from redis_storage import RedisStorage
+from redis_storage import RedisStorage, current_time_ms
 from serialize import json_to_torch, torch_to_json
 
 INPUT_VALIDATION_HANDLER = "validator"
@@ -41,9 +41,12 @@ def handler_callback(arguments):
 
             result = input_validator.predict(path)
             payload["input_validation"] = result
+            payload["validated_at"] = current_time_ms()
+
             storage.update(uid, payload)
             if result == True:
                 storage.publish(RedisStorage.SEGMENTATION, payload)
+
             print(f"Update input_validation for {path} = {result}")
 
         storage.subscribe(RedisStorage.INPUT_VALIDATION, input_handler)
@@ -59,6 +62,7 @@ def handler_callback(arguments):
             predicted, image_pred_path = segmentation.predict(path)
             payload["segmentation_result"] = torch_to_json(predicted)
             payload["segmented_image"] = image_pred_path
+            payload["segmented_at"] = current_time_ms()
             storage.update(uid, payload)
             storage.publish(RedisStorage.CLASSIFICATION, payload)
             print(f"Image {uid} segmeted {image_pred_path}")
@@ -76,6 +80,7 @@ def handler_callback(arguments):
             proba = classifier_model.predict(segmentation_result)
             payload["proba"] = round(proba * 100, 2)
             payload["result"] = proba > CLASSIFICATION_THRESHOLD
+            payload["classified_at"] = current_time_ms()
             storage.update(uid, payload)
             print(f"Image {uid} classified, probability of defect={proba}")
 

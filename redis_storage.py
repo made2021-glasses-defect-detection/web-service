@@ -7,6 +7,9 @@ import time
 
 from uuid import uuid4
 
+def current_time_ms():
+    return round(time.time() * 1000)
+
 class GracefulKiller:
     kill_now = False
     def __init__(self):

@@ -2,7 +2,7 @@ import os
 
 from flask import Flask, request, redirect, render_template, url_for, send_from_directory, jsonify, abort
 from werkzeug.utils import secure_filename
-from redis_storage import RedisStorage
+from redis_storage import RedisStorage, current_time_ms
 
 app = Flask(__name__, static_url_path="/static")
 app.config['UPLOAD_FOLDER'] = "./uploads"
@@ -28,7 +28,8 @@ def upload():
             {
                 # "path": os.path.abspath(full_path),
                 "path": full_path,
-                "public_path": filename
+                "public_path": filename,
+                "started_at": current_time_ms()
             }
         )
 
