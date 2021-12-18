@@ -2,13 +2,13 @@ FROM python:3.7
 
 WORKDIR app
 
-COPY input_classifier/requirements.txt .
+COPY validation/requirements.txt .
 
 RUN pip install -r requirements.txt
 
 
-COPY input_classifier/efficientnet-b0.pch input_classifier/
-COPY input_classifier/*.py input_classifier/
+COPY validation/efficientnet-b0.pch validation/
+COPY validation/*.py validation/
 COPY redis_storage.py .
 COPY serialize.py .
 COPY worker.py .

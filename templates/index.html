@@ -22,7 +22,55 @@
       }
 
       .image {
-        max-width: 800px;
+        max-width: 500px;
+      }
+
+      .header {
+        text-align: center;
+        margin: 15px;
+      }
+
+      .subheader {
+        text-align: center;
+        padding: 20px;
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      .progress-block {
+        text-align: center;
+        font-size: 18px;
+        padding: 20px;
+      }
+
+      .error {
+        color: #721c24;
+      }
+
+      .success {
+        color: #155724;
+      }
+
+      .warning {
+        color: #856404;
+      }
+
+      .btn {
+        margin-top: 15px;
+      }
+
+      .form-control-file {
+        margin-top: 10px;
+      }
+
+      #result {
+        font-weight: bold;
+      }
+
+      .center-image {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
       }
     </style>
   </head>
@@ -31,7 +79,7 @@
 
     <div class="container">
       <div class="row">
-        <h3><a href="/">Поиск дефектов на защитных очках</a></h3>
+        <h3 class="header"><a href="/">Поиск дефектов на защитных очках</a></h3>
 
         {% if error %}
           <div class="alert alert-danger" role="alert">
@@ -41,101 +89,114 @@
       </div>
       <div class="row">
         <div class="col-sm">
-          <form action="/upload" method="POST" enctype="multipart/form-data">
-            <div class="form-group">
-              <label for="file">Выберите фоторафию для обработки</label>
-              <input type="file" class="form-control-file" name="file" id="file" accept="image/*">
+          {% if uid %}
+            <div class="progress-block">
+              <span id="spinner"><img src="/static/spinner.gif" width="24" /></span>
+              <span id="result"></span>
+              <span id="progress">Валидация...</span>
             </div>
-            <div>
-              <button type="submit" class="btn btn-primary">Submit</button>
-            </div>
-          </form>
+          {% else %}
+            <form action="/upload" method="POST" enctype="multipart/form-data">
+              <div class="form-group">
+                <label for="file">Выберите фоторафию для обработки:</label>
+                <br/>
+                <input type="file" class="form-control-file" name="file" id="file" accept="image/*">
+              </div>
+              <div>
+                <button type="submit" class="btn btn-primary">Проверить</button>
+              </div>
+            </form>
+          {% endif %}
         </div>
       </div>
+
       {% if uid %}
       <div class="row">
-        <div class="col-sm">
-          <div id="progress">Валидация...</div>
-          <div id="result"></div>
-          <div id="spinner">
-            <img src="/static/spinner.gif" width="50" />
-          </div>
-          <div id="segmentation"><img class="image"/></div>
+        <div class="col-sm subheader border">
+          Исходное изображение
+        </div>
+        <div class="col-sm subheader border">
+          Результат сегментации
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm border">
+          {% if image_url %}
+            <img src="{{ image_url }}" class="image center-image"/>
+          {% endif %}
         </div>
 
-        <script type="text/javascript">
-          $(document).ready(function () {
-            var timer_id = null;
-            var validated = false;
-            var segmented = false;
-            var classified = false;
+        <div class="col-sm border">
+          <div id="segmentation"><img class="image center-image"/></div>
+        </div>
+      </div>
 
-            function stop() {
-              $("#spinner").hide();
-              clearTimeout(timer_id);
-            }
+      <script type="text/javascript">
+        $(document).ready(function () {
+          var timer_id = null;
+          var validated = false;
+          var segmented = false;
+          var classified = false;
 
-            function update_result() {
-              var uid = "{{ uid }}";
+          function stop() {
+            $("#spinner").hide();
+            clearTimeout(timer_id);
+          }
 
-              $.get("/result/" + uid, function(data) {
-                if (!validated) {
-                  if (data.hasOwnProperty("input_validation")) {
-                    if (data["input_validation"] === true) {
-                      $("#progress").text("Сегментация...")
-                      validated = true;
-                      return
-                    } else {
-                      $("#progress").text("На изображении нет защитных очков");
-                      stop();
-                    }
-                  }
-                }
+          function update_result() {
+            var uid = "{{ uid }}";
 
-                if (!segmented) {
-                  if (data.hasOwnProperty("segmented_image")) {
-                    $("#progress").text("Классификация...")
-                    $("#segmentation img").attr("src", data["segmented_image"])
-                    segmented = true;
+            $.get("/result/" + uid, function(data) {
+              if (!validated) {
+                if (data.hasOwnProperty("input_validation")) {
+                  if (data["input_validation"] === true) {
+                    $("#progress").text("Сегментация...")
+                    validated = true;
                     return
-                  }
-                }
-
-                if (!classified) {
-                  if (data.hasOwnProperty("proba")) {
-                    $("#progress").text("Вероятность дефектов " + data["proba"] + "%");
+                  } else {
+                    $("#progress").text("");
+                    $("#result").text("На изображении нет защитных очков");
+                    $("#result").addClass("warning")
+                    segmented = true;
                     classified = true;
                     stop();
                   }
                 }
-              });
-            }
+              }
 
-            timer_id = setInterval(update_result, 2000);
-          });
-        </script>
-      </div>
-      {% endif %}
-      {% if image_url %}
-      <div class="row">
-        <div class="col-sm">
-          <img src="{{ image_url }}" class="image"/>
-        </div>
-      </div>
+              if (!segmented) {
+                if (data.hasOwnProperty("segmented_image")) {
+                  $("#progress").text("Классификация...")
+                  $("#segmentation img").attr("src", data["segmented_image"])
+                  segmented = true;
+                  return
+                }
+              }
+
+              if (!classified) {
+                if (data.hasOwnProperty("proba")) {
+                  $("#progress").text("(вероятность дефектов " + data["proba"] + "%)");
+
+                  if (data["result"] === true) {
+                    $("#result").text("Бракованное изделие");
+                    $("#result").addClass("error");
+                  } else {
+                    $("#result").text("Качественное изделие");
+                    $("#result").addClass("success");
+                  }
+
+                  classified = true;
+                  stop();
+                }
+              }
+            });
+          }
+
+          timer_id = setInterval(update_result, 1000);
+        });
+      </script>
       {% endif %}
     </div>
-
-    {% if price %}
-      <div class="container">
-        <h3>≈ £{{ price }}/night</h3>
-
-        <div class="row">
-          Similar (by room type and bedrooms) realty rent price heatmap:
-          <div id="map" class="col-md-12">
-          </div>
-        </div>
-      </div>
-    {% endif %}
 
     <div class="container" id="footer">
       <div class="row">

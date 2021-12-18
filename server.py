@@ -19,19 +19,23 @@ def root():
 @app.route("/upload", methods=["POST"])
 def upload():
     file = request.files['file']
-    filename = secure_filename(file.filename)
-    full_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(full_path)
+    if file:
+        filename = secure_filename(file.filename)
+        full_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(full_path)
 
-    payload = storage.save(
-        {
-            "path": os.path.abspath(full_path),
-            "public_path": filename
-        }
-    )
+        payload = storage.save(
+            {
+                # "path": os.path.abspath(full_path),
+                "path": full_path,
+                "public_path": filename
+            }
+        )
 
-    storage.publish(RedisStorage.INPUT_VALIDATION, payload)
-    return redirect(url_for('status', uid=payload["uid"]))
+        storage.publish(RedisStorage.INPUT_VALIDATION, payload)
+        return redirect(url_for('status', uid=payload["uid"]))
+    else:
+        return redirect(url_for('root'))
 
 @app.route("/status/<uid>", methods=["GET"])
 def status(uid):

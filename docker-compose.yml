@@ -4,6 +4,8 @@ services:
   redis:
     image: "redis:6.2-alpine"
     restart: always
+    # ports:
+    #   - "6379:6379"
 
   web:
     image: "ghcr.io/made2021-glasses-defect-detection/web-server"
@@ -18,7 +20,7 @@ services:
     volumes:
       - uploads:/app/uploads
 
-  input_validator:
+  validation:
     image: "ghcr.io/made2021-glasses-defect-detection/input-classifier"
     restart: always
     environment:

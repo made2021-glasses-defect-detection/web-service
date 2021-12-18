@@ -45,7 +45,7 @@ class RedisStorage:
                 continue
 
             payload = json.loads(packed[1])
-            print(f"Queue `{queue_name}` recieved: `{payload}`")
+            print(f"Queue `{queue_name}` recieved: `{len(packed[1])}` bytes")
             handler(payload)
 
         print(f"Unsubscribed from `{queue_name}`")

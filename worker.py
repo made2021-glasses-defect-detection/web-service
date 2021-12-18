@@ -12,10 +12,11 @@ HANDLERS = [
     CLASSIFIER_HANDLER,
 ]
 
-INPUT_MODEL_PATH = "input_classifier/efficientnet-b0.pch"
+INPUT_MODEL_PATH = "validation/efficientnet-b0.pch"
 SEGMENTATION_MODEL_PATH = "segmentation/unet_resnet34_whole.pth"
 CLASSIFICATION_MODEL_PATH = "classification/clf_whole.pth"
 UPLOAD_DIR = "./uploads"
+CLASSIFICATION_THRESHOLD = 0.5
 
 # Storage format:
 # {
@@ -30,7 +31,7 @@ storage = RedisStorage()
 
 def handler_callback(arguments):
     if arguments.handler == INPUT_VALIDATION_HANDLER:
-        from input_classifier import classification_efficientnet
+        from validation import classification_efficientnet
 
         input_validator = classification_efficientnet.Evaluator(INPUT_MODEL_PATH)
 
@@ -41,7 +42,8 @@ def handler_callback(arguments):
             result = input_validator.predict(path)
             payload["input_validation"] = result
             storage.update(uid, payload)
-            storage.publish(RedisStorage.SEGMENTATION, payload)
+            if result == True:
+                storage.publish(RedisStorage.SEGMENTATION, payload)
             print(f"Update input_validation for {path} = {result}")
 
         storage.subscribe(RedisStorage.INPUT_VALIDATION, input_handler)
@@ -73,6 +75,7 @@ def handler_callback(arguments):
 
             proba = classifier_model.predict(segmentation_result)
             payload["proba"] = round(proba * 100, 2)
+            payload["result"] = proba > CLASSIFICATION_THRESHOLD
             storage.update(uid, payload)
             print(f"Image {uid} classified, probability of defect={proba}")
 
