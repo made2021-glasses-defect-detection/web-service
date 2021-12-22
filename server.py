@@ -26,7 +26,6 @@ def upload():
 
         payload = storage.save(
             {
-                # "path": os.path.abspath(full_path),
                 "path": full_path,
                 "public_path": filename,
                 "started_at": current_time_ms()

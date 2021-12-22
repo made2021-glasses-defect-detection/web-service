@@ -8,7 +8,7 @@ COPY segmentation/requirements.txt .
 
 RUN pip install -r requirements.txt
 
-COPY segmentation/unet_resnet34_whole.pth segmentation/
+COPY segmentation/unet_res18_whole.pth segmentation/
 COPY segmentation/*.py segmentation/
 COPY redis_storage.py .
 COPY serialize.py .

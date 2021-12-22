@@ -8,7 +8,7 @@ COPY classification/requirements.txt .
 
 RUN pip install -r requirements.txt
 
-COPY classification/clf_whole.pth classification/
+COPY classification/clf-unet_res18_whole.pth classification/
 COPY classification/*.py classification/
 COPY redis_storage.py .
 COPY serialize.py .

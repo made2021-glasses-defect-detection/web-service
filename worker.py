@@ -13,10 +13,10 @@ HANDLERS = [
 ]
 
 INPUT_MODEL_PATH = "validation/efficientnet-b0.pch"
-SEGMENTATION_MODEL_PATH = "segmentation/unet_resnet34_whole.pth"
-CLASSIFICATION_MODEL_PATH = "classification/clf_whole.pth"
+SEGMENTATION_MODEL_PATH = "segmentation/unet_res18_whole.pth"
+CLASSIFICATION_MODEL_PATH = "classification/clf-unet_res18_whole.pth"
 UPLOAD_DIR = "./uploads"
-CLASSIFICATION_THRESHOLD = 0.5
+CLASSIFICATION_THRESHOLD = 0.97
 
 # Storage format:
 # {

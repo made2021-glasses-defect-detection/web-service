@@ -7,6 +7,7 @@ from PIL import Image
 from uuid import uuid4
 
 IMAGE_SIZE = (480, 320)
+MASK_TRESHOLD = 0.97
 
 class Evaluator:
   def __init__(self, model_path, img_dir):
@@ -21,33 +22,34 @@ class Evaluator:
     image = self.load_scale_image(image_path)
 
     with torch.no_grad():
-      predicted = self.model(image.unsqueeze(0))[0]  # CHW.
-      predicted, image = self.crop_images(predicted.unsqueeze(0), image.unsqueeze(0))
-      predicted, image = predicted[0], image[0]
-      c = predicted.shape[0]
-      if c == 1:
+        predicted = self.model(image.unsqueeze(0))[0]  # CHW.
+        image_pred_path = self.save_image_and_mask(predicted, MASK_TRESHOLD, self.img_dir)
+        predicted = (predicted > MASK_TRESHOLD).float()
+        return predicted, image_pred_path
+
+  def mask_from_prediction(self, predicted, treshold):
+    predicted = (predicted > treshold).float()
+    return torch.cat((torch.zeros_like(predicted[0]).unsqueeze(0), predicted), dim=0)
+
+  def save_image_and_mask(self, predicted, treshold, img_dir):
+    c = predicted.shape[0]
+
+    if c == 1:
         predicted = torch.nn.functional.logsigmoid(predicted)
         predicted_labels = predicted[0] > np.log(0.5)
-      else:
-        predicted = torch.nn.functional.log_softmax(predicted, 0)
-        predicted_labels = predicted.max(0)[1]
+    else:
+        predicted = torch.sigmoid(predicted)
+        predicted = self.mask_from_prediction(predicted, treshold)
+        predicted_labels = (predicted * 255).permute(1, 2, 0)
 
-      predicted_labels = predicted_labels.cpu().numpy().astype(np.uint8)
-      image = self.image_to_numpy(image)
+    predicted_labels = predicted_labels.cpu().numpy().astype(np.uint8)
 
-      image_pred = image.copy()
-      for row in range(len(image)):
-        for col in range(len(image[0])):
-          if predicted_labels[row][col] == 1:
-            image_pred[row][col] = [255, 0, 0]
+    image_pred = Image.fromarray(predicted_labels)
+    image_pred_path = os.path.join(img_dir, "segmented-" + str(uuid4()) + ".png")
+    image_pred.save(image_pred_path)
+    return image_pred_path
 
-      image_pred = Image.fromarray(image_pred)
-      image_pred_path = os.path.join(self.img_dir, "segmented-" + str(uuid4()) + ".png")
-      image_pred.save(image_pred_path)
-
-      return predicted, image_pred_path
-
-  def image_to_numpy(self, image):
+  def image_to_numpy(image):
     """Convert Torch tensor to Numpy image."""
     if isinstance(image, np.ndarray):
       return image
@@ -65,58 +67,24 @@ class Evaluator:
 
     if image.shape[-1] == 4:
       image = image[..., :3]
+
     result = torch.from_numpy(np.ascontiguousarray(image))
 
     if device is not None:
       result = result.to(device)
-    result = result.permute(2, 0, 1)
 
+    result = result.permute(2, 0, 1)
     return result
 
-  def crop_images(self, predicted, masks_or_images):
-    """Если выход больше или меньше чем исходное изображение,
-    вырезать центральную часть из обоих, чтобы размеры совпадали.
-    """
-    if len(masks_or_images.shape) == 3:
-      predicted, masks = self.crop_images(predicted, masks_or_images.unsqueeze(1))
-      return predicted, masks[:, 0]
-    images = masks_or_images
-
-    if (len(predicted.shape) != 4) or (len(images.shape) != 4):
-      raise ValueError("Expected tensors of shape BCHW")
-    bi, ci, hi, wi = images.shape
-    bp, cp, hp, wp = predicted.shape
-    offset = (abs(hi - hp) // 2, abs(wi - wp) // 2)
-
-    if hp < hi:
-      images = images[:, :, offset[0]:offset[0] + hp]
-    else:
-      predicted = predicted[:, :, offset[0]:offset[0] + hi]
-
-    if wp < wi:
-      images = images[:, :, :, offset[1]:offset[1] + wp]
-    else:
-      predicted = predicted[:, :, :, offset[1]:offset[1] + wi]
-
-    return predicted, images
-
-  def load_scale_image(self, img_path, image_size=IMAGE_SIZE):
-    image = Image.open(img_path)
-    image = np.asarray(image)
+  def load_scale_image(self, img_name, image_size=IMAGE_SIZE):
+    image = Image.open(img_name)
+    image = np.asarray(image) / 255.
     scaler = Scaler(image_size)
     image = scaler(image)
     image = self.image_to_torch(image).float()
     return image
 
 class Scaler(object):
-  """Отмасштабировать изображения сохранив пропорции.
-
-  Пустые места будут заполнены отражениями.
-
-  Аргументы:
-      image: Изображение в HWC формате.
-      size: Требуемый размер, пара W, H.
-  """
   def __init__(self, size, grayscale=False):
     self._size = size
     self._grayscale = grayscale
@@ -127,7 +95,7 @@ class Scaler(object):
 
   def __call__(self, image):
     if not isinstance(image, np.ndarray):
-      image = np.array(image)
+        image = np.array(image)
     grayscale = self._grayscale
     rw, rh = self._size
     p = self._padding
