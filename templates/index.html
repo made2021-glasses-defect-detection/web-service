@@ -222,7 +222,7 @@
                   var totalTiming = data["classified_at"] - data["started_at"]
                   $(".total-timing").text(totalTiming.toString() + " мс.")
 
-                  $("#progress").text("(вероятность дефектов " + data["proba"] + "%)");
+                  $("#progress").text("(вероятность брака " + data["proba"] + "%)");
 
                   if (data["result"] === true) {
                     $("#result").text("Бракованное изделие");
